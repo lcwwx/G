@@ -1,0 +1,20 @@
+{
+  "name": "gxb-auto-player",
+  "version": "1.0.0",
+  "description": "高校邦课程视频自动播放：本地 Playwright 驱动本机 Edge，支持多账号排队",
+  "main": "webapp.js",
+  "scripts": {
+    "start": "node webapp.js"
+  },
+  "keywords": [
+    "gaoxiaobang",
+    "playwright",
+    "autoplay"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "playwright-core": "^1.64.1"
+  }
+}

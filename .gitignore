@@ -1,0 +1,13 @@
+node_modules/
+package-lock.json
+
+# 运行时会话/口令，绝对不要提交
+access.json
+llm.json
+
+# 产物和日志
+out/
+profile/
+shots/
+*.log
+watch_status.json

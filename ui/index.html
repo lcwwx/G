@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>高校邦 · 本地刷课台</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 20px 60px;
+    font: 14px/1.7 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: #f5f6f8; color: #1c1f23;
+    display: flex; justify-content: center;
+  }
+  .wrap { width: 100%; max-width: 780px; }
+  h1 { font-size: 20px; margin: 0 0 4px; letter-spacing: .5px; }
+  .sub { color: #6b7280; font-size: 13px; margin-bottom: 22px; }
+  .card {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+    padding: 20px 22px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 14px; margin: 0 0 14px; color: #374151; font-weight: 600; }
+  label { display: block; font-size: 12px; color: #6b7280; margin-bottom: 5px; }
+  input[type=text], input[type=password] {
+    width: 100%; padding: 9px 11px; font-size: 14px;
+    border: 1px solid #d1d5db; border-radius: 8px; outline: none;
+    background: #fff; color: #111;
+  }
+  input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  .field { margin-bottom: 13px; }
+  button {
+    font: inherit; cursor: pointer; border: 1px solid transparent;
+    padding: 9px 18px; border-radius: 8px; background: #2563eb; color: #fff;
+    transition: .15s;
+  }
+  button:hover { background: #1d4ed8; }
+  button.ghost { background: #fff; color: #374151; border-color: #d1d5db; }
+  button.ghost:hover { background: #f3f4f6; }
+  button.danger { background: #dc2626; }
+  button.danger:hover { background: #b91c1c; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .hint { font-size: 12px; color: #6b7280; margin-top: 10px; }
+  .warn {
+    background: #fffbeb; border: 1px solid #fde68a; color: #92400e;
+    padding: 11px 14px; border-radius: 9px; font-size: 12.5px; line-height: 1.65;
+  }
+  .warn b { color: #78350f; }
+  ul.courses { list-style: none; margin: 0; padding: 0; }
+  ul.courses li {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid #f1f2f4;
+  }
+  ul.courses li:last-child { border-bottom: 0; }
+  .cname { flex: 1; font-size: 13.5px; }
+  .cprog { font-size: 11.5px; color: #6b7280; margin-top: 2px; }
+  .badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 20px;
+    background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe;
+    white-space: nowrap;
+  }
+  .who { font-size: 12.5px; color: #374151; display: flex; align-items: center; gap: 10px; }
+  .who code { background: #f3f4f6; padding: 1px 6px; border-radius: 5px; font-size: 12px; }
+  .stat { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 12px; }
+  .stat div { font-size: 12px; color: #6b7280; }
+  .stat div b { display: block; font-size: 18px; color: #111; font-weight: 600; margin-top: 2px; }
+  .bar { height: 7px; background: #eef0f3; border-radius: 20px; overflow: hidden; margin: 6px 0 14px; }
+  .bar > i { display: block; height: 100%; width: 0%; background: #2563eb; transition: width .5s; }
+  pre.log {
+    margin: 0; padding: 12px; max-height: 220px; overflow: auto;
+    background: #0f172a; color: #cbd5e1; border-radius: 9px;
+    font: 12px/1.65 ui-monospace, Consolas, monospace; white-space: pre-wrap;
+  }
+  .err { color: #b91c1c; font-size: 12.5px; margin-top: 12px; min-height: 18px; }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; background: #9ca3af; }
+  .dot.on { background: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,.15); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>高校邦 · 本地刷课台</h1>
+  <div class="sub">任何学校任何账号都能登 · 每次登录用全新会话 · 密码不落盘</div>
+
+  <div class="card">
+    <h2>① 登录</h2>
+    <div class="field">
+      <label>学校网址（你平时登录高校邦的那个网址）</label>
+      <input type="text" id="school" placeholder="例如 xmut.gaoxiaobang.com" autocomplete="off">
+    </div>
+    <div class="row">
+      <div class="field" style="flex:1.6">
+        <label>学号 / 手机号</label>
+        <input type="text" id="user" placeholder="请输入" autocomplete="off">
+      </div>
+      <div class="field" style="flex:1.4">
+        <label>密码</label>
+        <input type="password" id="pass" placeholder="只在内存用一次" autocomplete="off">
+      </div>
+    </div>
+    <button id="btnLogin">登录</button>
+    <button class="ghost" id="btnManual" style="margin-left:8px">在浏览器窗口里自己登</button>
+    <button class="ghost" id="btnRefreshTop" style="margin-left:8px">刷新课程列表</button>
+    <div class="hint">不知道填什么？就是你打开课程的那个网址，去掉 <code>https://</code> 和后面的路径，只留中间的域名。<br>手动登录完、或者程序说“登录窗口我留着了”之后，点「刷新课程列表」就能接上。</div>
+    <div class="err" id="loginErr"></div>
+  </div>
+
+  <div class="card">
+    <h2>排队刷课 <span id="queueDot" class="dot"></span></h2>
+    <div class="hint" style="margin-bottom:12px">
+      一次只跑一个人，按加入顺序来。用这台电脑的浏览器，所以别指望同时跑。<br>
+      密码只在内存里留到“登录成功”那一刻，之后立刻抹掉，不写任何文件；服务一重启，队列就清空。
+    </div>
+    <div class="field">
+      <label>学校网址</label>
+      <input type="text" id="qSchool" placeholder="例如 xmut.gaoxiaobang.com" autocomplete="off">
+    </div>
+    <div class="row">
+      <div class="field" style="flex:1.6">
+        <label>学号 / 手机号</label>
+        <input type="text" id="qUser" placeholder="请输入" autocomplete="off">
+      </div>
+      <div class="field" style="flex:1.4">
+        <label>密码</label>
+        <input type="password" id="qPass" placeholder="登录完即抹掉" autocomplete="off">
+      </div>
+    </div>
+    <div class="field">
+      <label>课程关键词（必填，只刷标题里含这几个字的课）</label>
+      <input type="text" id="qKeyword" placeholder="例如 形势与政策" autocomplete="off">
+    </div>
+    <button id="btnQueueAdd">加入队列</button>
+    <button class="ghost" id="btnQueueClear" style="margin-left:8px">清空已结束</button>
+    <div class="hint">
+      只自动刷视频。专题讨论和结课作业需要你本人看过后自己提交——排队的时候没人盯着，这一刀不能替人砍。
+    </div>
+    <div class="err" id="queueErr"></div>
+    <ul class="courses" id="queueList"></ul>
+  </div>
+
+  <div id="after" style="display:none">
+    <div class="card">
+      <h2>② 选择课程</h2>
+      <div class="who" style="margin-bottom:12px">
+        当前会话：<code id="whoBase">—</code>
+        <button class="ghost" id="btnLogout" style="padding:4px 12px;font-size:12.5px">换账号</button>
+        <button class="ghost" id="btnRefresh" style="padding:4px 12px;font-size:12.5px">刷新课程列表</button>
+      </div>
+      <ul class="courses" id="courseList"></ul>
+      <div class="hint" id="courseHint">点“开始刷课”后，浏览器窗口会自动弹到前面。刷课时别切走窗口。</div>
+    </div>
+
+    <div class="card" id="topicBox" style="display:none">
+      <h2>专题讨论草稿</h2>
+      <div class="hint" id="topicMsg">—</div>
+      <pre class="log" id="topicText" style="margin-top:10px;max-height:200px;background:#f8fafc;color:#334155;border:1px solid #e5e7eb"></pre>
+      <div style="margin-top:12px">
+        <button class="ghost" id="btnNextTopic" style="display:none">下一个讨论</button>
+      </div>
+    </div>
+
+    <div class="card" id="asgBox" style="display:none">
+      <h2>结课作业</h2>
+      <div class="hint" id="asgMsg">—</div>
+      <pre class="log" id="asgText" style="margin-top:10px;max-height:200px;background:#f8fafc;color:#334155;border:1px solid #e5e7eb"></pre>
+    </div>
+
+    <div class="card">
+      <h2>③ 运行状态 <span id="runDot" class="dot"></span></h2>
+      <div class="stat">
+        <div>当前进度 <b id="pct">—</b></div>
+        <div>第几节 <b id="seq">—</b></div>
+        <div>当前章节 <b id="cur" style="font-size:13px;font-weight:500">—</b></div>
+      </div>
+      <div class="bar"><i id="bar"></i></div>
+      <pre class="log" id="log"></pre>
+      <div style="margin-top:12px">
+        <button class="danger" id="btnStop">停止</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="warn">
+    <b>刷课期间别切窗口。</b>平台监听焦点丢失，切走就暂停，回来续播（进度不丢，但白等）。<br>
+    <b>电脑别睡。</b>已自动开启“保持唤醒”；合盖或手动睡眠仍会中断。<br>
+    <b>一次只能跑一个人。</b>同一时间只开一个浏览器窗口；换账号会自动关掉上一个会话，不会串号。<br>
+    <b>只刷视频。</b>讨论、作业、考试不碰。
+  </div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+let polling = null;
+
+async function api(path, body) {
+  const r = await fetch(path, {
+    method: body ? 'POST' : 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || '请求失败');
+  return j;
+}
+
+function showErr(m) { $('#loginErr').textContent = m || ''; }
+
+$('#btnLogin').onclick = async () => {
+  showErr('');
+  const school = $('#school').value.trim();
+  const user = $('#user').value.trim();
+  const pass = $('#pass').value;
+  if (!school) return showErr('先填学校网址');
+  if (!user || !pass) return showErr('学号和密码都要填');
+  $('#btnLogin').disabled = true;
+  $('#btnLogin').textContent = '登录中…';
+  try {
+    const r = await api('/api/login', { school, user, pass });
+    $('#pass').value = '';
+    $('#whoBase').textContent = r.base || school;
+    $('#after').style.display = 'block';
+    await loadCourses();
+  } catch (e) {
+    showErr(e.message);
+  } finally {
+    $('#btnLogin').disabled = false;
+    $('#btnLogin').textContent = '登录';
+  }
+};
+
+$('#btnManual').onclick = async () => {
+  showErr('');
+  const school = $('#school').value.trim();
+  if (!school) return showErr('先填学校网址');
+  try {
+    await api('/api/manual', { school });
+    showErr('登录窗口已打开。登好后点下面的“刷新课程列表”。');
+    $('#after').style.display = 'block';
+    $('#whoBase').textContent = school;
+    loadCourses(true).catch(() => {});
+  } catch (e) { showErr(e.message); }
+};
+
+$('#btnLogout').onclick = async () => {
+  try { await api('/api/logout', {}); } catch (e) {}
+  $('#after').style.display = 'none';
+  $('#pass').value = '';
+  showErr('已退出，账号没有留在本机。');
+};
+
+$('#btnRefresh').onclick = async () => {
+  $('#after').style.display = 'block';
+  await loadCourses();
+};
+
+$('#btnRefreshTop').onclick = async () => {
+  const b = $('#btnRefreshTop');
+  b.disabled = true;
+  b.textContent = '读取中…';
+  $('#after').style.display = 'block';
+  try {
+    await loadCourses();
+    showErr('课程列表已刷新。');
+  } catch (e) {
+    showErr('刷新失败：' + e.message);
+  } finally {
+    b.disabled = false;
+    b.textContent = '刷新课程列表';
+  }
+};
+
+function showQueueErr(m) { $('#queueErr').textContent = m || ''; }
+
+const Q_STATUS = { waiting: '等待中', running: '正在刷', done: '已完成', failed: '失败' };
+
+async function refreshQueue() {
+  try {
+    const r = await api('/api/queue', {});
+    const ul = $('#queueList');
+    const jobs = r.jobs || [];
+    ul.innerHTML = '';
+    if (!jobs.length) {
+      const li = document.createElement('li');
+      const d = document.createElement('div');
+      d.className = 'cname';
+      d.textContent = '队列里还没有人';
+      li.appendChild(d);
+      ul.appendChild(li);
+    }
+    jobs.forEach((j, i) => {
+      const li = document.createElement('li');
+      const box = document.createElement('div');
+      box.className = 'cname';
+      box.style.cssText = 'display:flex;flex-direction:column;gap:3px';
+
+      const line1 = document.createElement('span');
+      line1.textContent = (i + 1) + '. ' + j.user + ' · ' + j.keyword + ' · ' + (Q_STATUS[j.status] || j.status);
+      if (j.status === 'running') line1.style.color = '#16a34a';
+      if (j.status === 'failed') line1.style.color = '#b91c1c';
+      box.appendChild(line1);
+
+      if (j.progress) {
+        const p = document.createElement('span');
+        p.style.cssText = 'font-size:11.5px;color:#6b7280';
+        p.textContent = j.progress;
+        box.appendChild(p);
+      }
+      if (j.note) {
+        const p = document.createElement('span');
+        p.style.cssText = 'font-size:11.5px;color:#6b7280';
+        p.textContent = j.note;
+        box.appendChild(p);
+      }
+      li.appendChild(box);
+
+      if (j.status === 'waiting') {
+        const b = document.createElement('button');
+        b.className = 'ghost';
+        b.textContent = '取消';
+        b.style.cssText = 'padding:3px 10px;font-size:12px;flex:none';
+        b.onclick = async () => {
+          try { await api('/api/queue/remove', { id: j.id }); refreshQueue(); } catch (e) { showQueueErr(e.message); }
+        };
+        li.appendChild(b);
+      }
+      ul.appendChild(li);
+    });
+    $('#queueDot').className = 'dot' + (r.running ? ' on' : '');
+  } catch (e) {}
+}
+
+$('#btnQueueAdd').onclick = async () => {
+  showQueueErr('');
+  const b = $('#btnQueueAdd');
+  b.disabled = true;
+  b.textContent = '提交中…';
+  try {
+    const r = await api('/api/queue/add', {
+      school: $('#qSchool').value,
+      user: $('#qUser').value,
+      pass: $('#qPass').value,
+      keyword: $('#qKeyword').value,
+    });
+    $('#qPass').value = '';
+    showQueueErr(r.ahead > 0 ? '已加入，前面还有 ' + r.ahead + ' 个人' : '已加入，马上开始');
+    refreshQueue();
+  } catch (e) {
+    showQueueErr('加入失败：' + e.message);
+  } finally {
+    b.disabled = false;
+    b.textContent = '加入队列';
+  }
+};
+
+$('#btnQueueClear').onclick = async () => {
+  try { await api('/api/queue/clear', {}); refreshQueue(); } catch (e) { showQueueErr(e.message); }
+};
+
+refreshQueue();
+setInterval(refreshQueue, 4000);
+
+async function loadCourses(quiet) {
+  const ul = $('#courseList');
+  if (!quiet) ul.innerHTML = '<li class="cname">读取中…</li>';
+  try {
+    const { courses, base } = await api('/api/courses');
+    if (base) $('#whoBase').textContent = base;
+    if (!courses.length) { ul.innerHTML = '<li class="cname">没读到课程，确认已登录且账号里有课。</li>'; return; }
+    ul.innerHTML = '';
+    courses.forEach((c, i) => {
+      const li = document.createElement('li');
+      const box = document.createElement('div');
+      box.className = 'cname';
+      box.textContent = c.title || ('课程 ' + (i + 1));
+      if (c.progress) {
+        const p = document.createElement('div');
+        p.className = 'cprog';
+        p.textContent = c.progress;
+        box.appendChild(p);
+      }
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;gap:8px;flex:none';
+      const b = document.createElement('button');
+      b.textContent = '刷视频';
+      b.onclick = () => startBrush(i, b);
+      const b2 = document.createElement('button');
+      b2.className = 'ghost';
+      b2.textContent = '写讨论';
+      b2.onclick = () => startTopic(i, 0, b2);
+      const b3 = document.createElement('button');
+      b3.className = 'ghost';
+      b3.textContent = '写作业';
+      b3.onclick = () => startAssignment(i, b3);
+      wrap.appendChild(b);
+      wrap.appendChild(b2);
+      wrap.appendChild(b3);
+      li.appendChild(box);
+      li.appendChild(wrap);
+      ul.appendChild(li);
+    });
+  } catch (e) {
+    ul.innerHTML = '';
+    const li = document.createElement('li');
+    li.className = 'cname';
+    li.textContent = quiet ? '' : ('读取失败：' + e.message);
+    ul.appendChild(li);
+  }
+}
+
+async function startAssignment(index, btn) {
+  $('#asgBox').style.display = 'block';
+  $('#asgMsg').textContent = '正在读题、写正文、上传文件…（约 30–60 秒）';
+  $('#asgText').textContent = '';
+  if (btn) { btn.disabled = true; btn.textContent = '生成中…'; }
+  try {
+    const r = await api('/api/assignment', { index });
+    $('#asgMsg').textContent = r.uploaded
+      ? '已生成并上传《' + r.fileName + '》。回到浏览器窗口检查预览，确认无误再自己点「提交」。'
+      : '已生成《' + r.fileName + '》，但没自动上传成功，请手动选文件。';
+    $('#asgText').textContent = r.text;
+  } catch (e) {
+    $('#asgMsg').textContent = '失败：' + e.message;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '写作业'; }
+  }
+}
+
+let topicCtx = null;
+
+async function startTopic(index, k, btn) {
+  $('#topicBox').style.display = 'block';
+  $('#topicMsg').textContent = '正在读题目、生成草稿…（约 10–30 秒）';
+  $('#topicText').textContent = '';
+  $('#btnNextTopic').style.display = 'none';
+  if (btn) { btn.disabled = true; btn.textContent = '生成中…'; }
+  try {
+    const r = await api('/api/topics', { index, k });
+    topicCtx = { index, total: r.total, k: r.k };
+    $('#topicMsg').textContent =
+      '已填好第 ' + (r.k + 1) + ' / ' + r.total + ' 个：《' + r.title +
+      '》。回到浏览器窗口看一眼，确认没问题再自己点「发布」。';
+    $('#topicText').textContent = r.text;
+    if (r.k + 1 < r.total) $('#btnNextTopic').style.display = 'inline-block';
+  } catch (e) {
+    $('#topicMsg').textContent = '失败：' + e.message;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '写讨论'; }
+  }
+}
+
+$('#btnNextTopic').onclick = () => {
+  if (!topicCtx) return;
+  startTopic(topicCtx.index, topicCtx.k + 1, null);
+};
+
+async function startBrush(index, btn) {
+  btn.disabled = true;
+  btn.textContent = '启动中…';
+  try {
+    await api('/api/start', { index });
+    poll();
+  } catch (e) {
+    alert(e.message);
+    btn.disabled = false;
+    btn.textContent = '开始刷课';
+  }
+}
+
+$('#btnStop').onclick = async () => {
+  try { await api('/api/stop', {}); } catch (e) {}
+  poll(true);
+};
+
+function fmtTime(s) {
+  if (s == null) return '—';
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+
+async function poll(once) {
+  if (polling) clearInterval(polling);
+  const run = async () => {
+    try {
+      const j = await api('/api/status');
+      $('#runDot').className = 'dot' + (j.running ? ' on' : '');
+      const l = j.last || {};
+      $('#pct').textContent = l.t != null && l.dur
+        ? l.pct + '%  ' + fmtTime(l.t) + ' / ' + fmtTime(l.dur)
+        : (l.pct != null ? l.pct + '%' : '—');
+      $('#seq').textContent = j.total ? ((j.idx + 1) + ' / ' + j.total) : '—';
+      $('#cur').textContent = j.current || '—';
+      $('#bar').style.width = (l.pct || 0) + '%';
+      let txt = (j.log || []).join('\n');
+      if (j.needsUser) txt += '\n⚠ 需要你处理（回到浏览器窗口看看）';
+      $('#log').textContent = txt;
+      $('#log').scrollTop = $('#log').scrollHeight;
+    } catch (e) {}
+  };
+  await run();
+  if (!once) polling = setInterval(run, 2000);
+}
+</script>
+</body>
+</html>
