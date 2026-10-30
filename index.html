@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>高校邦 刷课台</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: #0b1020;
+    background-image: radial-gradient(circle at 20% 10%, #1b2a4a 0%, transparent 45%),
+                      radial-gradient(circle at 85% 85%, #2a1b3d 0%, transparent 45%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    color: #e8ecf5; padding: 24px;
+  }
+  .card {
+    width: 100%; max-width: 420px; background: rgba(20, 27, 45, .82);
+    border: 1px solid rgba(120, 150, 220, .18); border-radius: 20px; padding: 34px 28px 28px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .55); backdrop-filter: blur(14px); text-align: center;
+  }
+  h1 { font-size: 21px; margin: 0 0 8px; font-weight: 620; letter-spacing: .4px; }
+  .sub { font-size: 12.5px; color: #8f9cb5; margin-bottom: 26px; line-height: 1.7; }
+  .status {
+    display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px;
+    padding: 6px 14px; border-radius: 999px; background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08); margin-bottom: 22px; color: #a9b6cc;
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #6b7280; }
+  .dot.on  { background: #22c55e; box-shadow: 0 0 0 4px rgba(34,197,94,.16); }
+  .dot.off { background: #ef4444; box-shadow: 0 0 0 4px rgba(239,68,68,.16); }
+  a.go {
+    display: block; width: 100%; padding: 15px; border-radius: 13px; text-decoration: none;
+    background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff;
+    font-size: 15.5px; font-weight: 600; letter-spacing: .5px;
+    box-shadow: 0 10px 26px rgba(59, 130, 246, .32); transition: transform .16s, box-shadow .16s;
+  }
+  a.go:active { transform: scale(.978); box-shadow: 0 5px 14px rgba(59,130,246,.28); }
+  a.go.dead { background: #2b3550; color: #7b879e; box-shadow: none; pointer-events: none; }
+  .tip { font-size: 12px; color: #79859c; margin-top: 22px; line-height: 1.85; text-align: left; }
+  .tip b { color: #a9b6cc; font-weight: 500; }
+  code {
+    background: rgba(255,255,255,.07); padding: 1px 6px; border-radius: 5px;
+    font-size: 11.5px; color: #b8c4d8;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>高校邦 刷课台</h1>
+  <div class="sub">入口页 · 真正的刷课程序跑在发布者自己的电脑上</div>
+
+  <div class="status"><span class="dot" id="dot"></span><span id="state">检查中…</span></div>
+
+  <a class="go dead" id="go" href="#">进入刷课台</a>
+
+  <div class="tip">
+    <b>访问口令</b>：进入后需要输入 6 位口令，找发你链接的人要。<br>
+    <b>为什么会连不上</b>：这台刷课机得开着、联网、而且没在休眠。它一关机，这里就打不开了。<br>
+    <b>别切窗口</b>：刷课期间浏览器窗口必须保持在前台，被遮住视频会自己暂停。
+  </div>
+</div>
+
+<script>
+(async function () {
+  const dot = document.getElementById('dot');
+  const state = document.getElementById('state');
+  const go = document.getElementById('go');
+
+  let target = '';
+  try {
+    const r = await fetch('url.json?t=' + Date.now(), { cache: 'no-store' });
+    if (r.ok) {
+      const j = await r.json();
+      target = (j.url || '').trim();
+    }
+  } catch (e) {}
+
+  if (!target) {
+    dot.className = 'dot off';
+    state.textContent = '暂时没有可用地址';
+    go.textContent = '刷课机还没上线';
+    return;
+  }
+
+  // 探一下目标是否真的活着（隧道挂了会失败）
+  let alive = false;
+  try {
+    const c = new AbortController();
+    const timer = setTimeout(() => c.abort(), 6000);
+    await fetch(target + (target.includes('?') ? '&' : '?') + 'ping=1', {
+      mode: 'no-cors', cache: 'no-store', signal: c.signal,
+    });
+    clearTimeout(timer);
+    alive = true;
+  } catch (e) {}
+
+  go.href = target;
+  go.classList.remove('dead');
+  if (alive) {
+    dot.className = 'dot on';
+    state.textContent = '刷课机在线';
+  } else {
+    dot.className = 'dot off';
+    state.textContent = '刷课机当前离线';
+    go.textContent = '仍然尝试进入';
+  }
+})();
+</script>
+</body>
+</html>
