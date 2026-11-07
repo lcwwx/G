@@ -105,6 +105,25 @@ set GXB_LLM_MODEL=deepseek-chat
 
 ---
 
+## 公网入口（入口页 + 隧道）
+
+刷课台只跑在本机 `127.0.0.1:18800`，手机在外面打不开。对外是这么接起来的：
+
+1. `cloudflared tunnel --url http://127.0.0.1:18800` 起一条 Cloudflare 临时隧道，拿到一个 `https://xxx.trycloudflare.com` 地址；
+2. 把这个地址写进本目录的 `url.json`，推到 GitHub Pages；
+3. 入口页 `index.html` 打开时先读 `url.json`，再对里面的地址 ping 一下——通了显示「刷课机在线」，按钮跳过去，输 6 位口令进控制台。
+
+**临时隧道的地址每次重启都会变**，所以 `url.json` 得跟着改。不改的话入口页会显示「刷课机当前离线」，按钮点进去也是死地址。
+
+`watchdog.ps1` 负责把两头自动拉起来（计划任务 `GXBGuard`，每 5 分钟一次）：
+
+- 18800 没在监听 → 触发计划任务 `GXBWeb` 起 `webapp.js`；
+- 没有 `cloudflared` 进程 → 起隧道，把这次的地址写进 `current-url.txt`，并在 `watchdog.log` 记一行。
+
+它**不会**自己改 `url.json`（那需要仓库的写权限）。看到 `current-url.txt` 变了，就把 `url.json` 改过去再推一次。
+
+---
+
 ## 已知限制
 
 - **浏览器窗口必须保持在前台**。平台的防挂机逻辑是：窗口一失焦就 `pause()`。被遮住、最小化、切到别的窗口，视频都会停。这是平台的设计，不是 bug。
@@ -121,11 +140,16 @@ set GXB_LLM_MODEL=deepseek-chat
 ├── webapp.js          # 全部后端：HTTP 服务 + Playwright 控制 + 队列 + 模型调用
 ├── ui/
 │   └── index.html     # 单页界面（内联 CSS/JS，无构建步骤）
+├── index.html         # GitHub Pages 入口页：读 url.json 判断在线/离线
+├── url.json           # 当前隧道地址（每次重启隧道都要改，见「公网入口」）
+├── watchdog.ps1       # 计划任务每 5 分钟跑一次：拉起 webapp + cloudflared
 ├── keepawake.ps1      # 刷课期间阻止系统休眠
 ├── package.json
 ├── start.bat
 ├── llm.json           # 可选，你自己的模型 key（已在 .gitignore 里）
-└── access.json        # 运行时自动生成的口令（已在 .gitignore 里）
+├── access.json        # 运行时自动生成的口令（已在 .gitignore 里）
+├── current-url.txt    # 运行时写入的隧道地址（已在 .gitignore 里）
+└── watchdog.log       # watchdog 的运行日志（已在 .gitignore 里）
 ```
 
 ---
@@ -138,6 +162,32 @@ set GXB_LLM_MODEL=deepseek-chat
 - **视频状态**：靠 `document.querySelector('video')` 的 `paused / currentTime / duration` 判断，不用猜。
 - **切换视频时要加锁**：跳转那几秒页面还没有 video 元素，如果这时让定时器去判断"有没有视频"，会被误判成"这条没视频"然后秒跳下一条。这是本项目踩过的最深的坑。
 - **视频内练习**：正确答案就在 `.gxb-video-quiz .correctAnswer` 的 `data` 属性里（页面标注"仅作练习，不计入课程成绩"）。
+
+---
+
+## 排障
+
+### 入口页显示「刷课机当前离线」
+
+按顺序看三样：
+
+1. `http://127.0.0.1:18800` 打得开吗——打不开是 `webapp.js` 没跑，看计划任务 `GXBWeb`；
+2. `Get-Process cloudflared` 有没有——没有就是隧道断了，`watchdog.log` 里会有记录；
+3. `url.json` 里的地址和 `current-url.txt` 是不是同一个——不一样就是地址过期，改 `url.json` 再推。
+
+### 2026-11-07：入口页一直离线，计划任务却显示"成功"
+
+**现象**：`url.json` 指向的地址 DNS 都解析不到了，`cloudflared` 根本没在跑；而计划任务 `GXBGuard` 每 5 分钟一次，退出码一直是 0。
+
+**根因**：`watchdog.ps1` 存成了 UTF-8 **无 BOM**，但计划任务用的是 Windows PowerShell 5.1，它按 GBK 读脚本。脚本里那行中文路径 `D:\凌晨望晚霞的ds工作区\2区\gxb` 被读成乱码，`Start-Process` 的日志重定向就指向一个不存在的目录，直接抛错；而脚本开头 `$ErrorActionPreference = 'SilentlyContinue'` 把错误全吞了，于是每次都"成功地"什么都没做。（拉起 webapp 那段不含中文路径，所以那半一直好用——这就是"程序还活着，就是进不去"的由来。）
+
+**修法**：
+
+- 脚本里不再出现中文路径，目录改用 `$PSScriptRoot` 取；
+- 文件保存成 **UTF-8 with BOM**；
+- 加 `watchdog.log` 记录动作，出问题有痕迹可查。
+
+**以后改这个脚本**：别用「UTF-8 无 BOM」存盘（记事本另存为里选 "UTF-8 with BOM"，或干脆只写纯英文内容），否则同类的静默失败还会再来一次。
 
 ---
 

@@ -11,3 +11,4 @@ profile/
 shots/
 *.log
 watch_status.json
+current-url.txt
